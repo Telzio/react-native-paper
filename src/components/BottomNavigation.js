@@ -196,6 +196,7 @@ type Props<T> = {
    * @optional
    */
   theme: Theme,
+  bottomSheet: any
 };
 
 type State = {
@@ -653,6 +654,7 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
             );
           })}
         </View>
+        {this.props.bottomSheet ? this.props.bottomSheet : null}
         <Surface
           style={[
             styles.bar,
