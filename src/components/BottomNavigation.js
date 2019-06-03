@@ -243,6 +243,7 @@ type State = {
    * Trak whether the keyboard is visible to show and hide the navigation bar.
    */
   keyboard: boolean,
+  showSecondaryRow: boolean
 };
 
 const MIN_RIPPLE_SCALE = 0.001; // Minimum scale is not 0 due to bug with animation
@@ -396,6 +397,8 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
       previous: 0,
       loaded: [index],
       keyboard: false,
+      showSecondaryRow: false,
+      trueIndex: 0
     };
   }
 
@@ -608,6 +611,8 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
       maxTabWidth
     );
 
+    let trueIndex = 0;
+
     return (
       <View
         style={[styles.container, style]}
@@ -681,10 +686,20 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
           }
           onLayout={this._handleLayout}
         >
+          {this.props.secondaryRow ?
+          <Touchable onPress={() => { this.setState({ showSecondaryRow: !this.state.showSecondaryRow})}}>
+            <View style={styles.header}>
+                  <View style={styles.panelHeader}>
+                      <View style={styles.panelHandle} />
+                  </View>
+            </View>
+          </Touchable>
+
+          : null}
           <Animated.View style={[styles.barContent, { backgroundColor }]}>
             <SafeAreaView
               forceInset={{ top: 'never', bottom: 'always' }}
-              style={[styles.items, { maxWidth: maxTabWidth * routes.length }]}
+              style={[styles.items, { maxWidth: maxTabWidth * routes.filter((route) => {return route.key !== 'Settings' && route.key !== 'Logout'}).length }]}
             >
               {shifting ? (
                 <Animated.View
@@ -722,9 +737,13 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
                   ]}
                 />
               ) : null}
-              {routes.map((route, index) => {
+
+
+              {routes.filter((route) => { return route.key !== 'Settings' && route.key !== 'Logout'}).map((route, index) => {
+
                 const focused = navigationState.index === index;
                 const active = this.state.tabs[index];
+                trueIndex = index;
 
                 // Scale the label up
                 const scale =
@@ -905,6 +924,243 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
               })}
             </SafeAreaView>
           </Animated.View>
+
+          {/* duplicated as a test */}
+          {this.props.secondaryRow && this.state.showSecondaryRow ?
+          <Animated.View style={[styles.barContent, { backgroundColor }]}>
+            <SafeAreaView
+              forceInset={{ top: 'never', bottom: 'always' }}
+              style={[styles.items, { maxWidth: maxTabWidth * routes.filter((route) => {return route.key === 'Settings' || route.key === 'Logout'}).length }]}
+            >
+              {shifting ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.ripple,
+                    {
+                      // Since we have a single ripple, we have to reposition it so that it appears to expand from active tab.
+                      // We need to move it from the top to center of the navigation bar and from the left to the active tab.
+                      top: BAR_HEIGHT / 2 - layout.width / 8,
+                      left:
+                        navigationState.index * tabWidth +
+                        tabWidth / 2 -
+                        layout.width / 8,
+                      height: layout.width / 4,
+                      width: layout.width / 4,
+                      borderRadius: layout.width / 2,
+                      backgroundColor: getColor({
+                        route: routes[navigationState.index],
+                      }),
+                      transform: [
+                        {
+                          // Scale to twice the size  to ensure it covers the whole navigation bar
+                          scale: this.state.ripple.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, 8],
+                          }),
+                        },
+                      ],
+                      opacity: this.state.ripple.interpolate({
+                        inputRange: [0, MIN_RIPPLE_SCALE, 0.3, 1],
+                        outputRange: [0, 0, 1, 1],
+                      }),
+                    },
+                  ]}
+                />
+              ) : null}
+
+
+              {routes.filter((route) => { return route.key === 'Settings' || route.key === 'Logout'}).map((route, index) => {
+
+                console.log(navigationState, trueIndex, index);
+
+                trueIndex = index = trueIndex + 1;
+                const focused = navigationState.index === index;
+                const active = this.state.tabs[index];
+
+
+                // Scale the label up
+                const scale =
+                  labeled && shifting
+                    ? active.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.5, 1],
+                      })
+                    : 1;
+
+                // Move down the icon to account for no-label in shifting and smaller label in non-shifting.
+                const translateY = labeled
+                  ? shifting
+                    ? active.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [7, 0],
+                      })
+                    : 0
+                  : 7;
+
+                // We render the active icon and label on top of inactive ones and cross-fade them on change.
+                // This trick gives the illusion that we are animating between active and inactive colors.
+                // This is to ensure that we can use native driver, as colors cannot be animated with native driver.
+                const activeOpacity = active;
+                const inactiveOpacity = active.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 0],
+                });
+
+                const badge = getBadge({ route });
+
+                return (
+                  <Touchable
+                    key={route.key}
+                    borderless
+                    centered
+                    rippleColor={touchColor}
+                    onPress={() => this._handleTabPress(index)}
+                    testID={getTestID({ route })}
+                    accessibilityLabel={getAccessibilityLabel({ route })}
+                    accessibilityTraits={
+                      focused ? ['button', 'selected'] : 'button'
+                    }
+                    accessibilityComponentType="button"
+                    accessibilityRole="button"
+                    accessibilityStates={['selected']}
+                    style={styles.item}
+                  >
+                    <View pointerEvents="none">
+                      <Animated.View
+                        style={[
+                          styles.iconContainer,
+                          { transform: [{ translateY }] },
+                        ]}
+                      >
+                        <Animated.View
+                          style={[
+                            styles.iconWrapper,
+                            { opacity: activeOpacity },
+                          ]}
+                        >
+                          {renderIcon ? (
+                            renderIcon({
+                              route,
+                              focused: true,
+                              color: activeTintColor,
+                            })
+                          ) : (
+                            <Icon
+                              source={(route: Object).icon}
+                              color={activeTintColor}
+                              size={24}
+                            />
+                          )}
+                        </Animated.View>
+                        <Animated.View
+                          style={[
+                            styles.iconWrapper,
+                            { opacity: inactiveOpacity },
+                          ]}
+                        >
+                          {renderIcon ? (
+                            renderIcon({
+                              route,
+                              focused: false,
+                              color: inactiveTintColor,
+                            })
+                          ) : (
+                            <Icon
+                              source={(route: Object).icon}
+                              color={inactiveTintColor}
+                              size={24}
+                            />
+                          )}
+                        </Animated.View>
+                        <View
+                          style={[
+                            styles.badgeContainer,
+                            {
+                              right:
+                                (badge != null && typeof badge !== 'boolean'
+                                  ? String(badge).length * -2
+                                  : 0) - 2,
+                            },
+                          ]}
+                        >
+                          {typeof badge === 'boolean' ? (
+                            <Badge visible={badge} size={8} />
+                          ) : (
+                            <Badge visible={badge != null} size={16}>
+                              {badge}
+                            </Badge>
+                          )}
+                        </View>
+                      </Animated.View>
+                      {labeled ? (
+                        <Animated.View
+                          style={[
+                            styles.labelContainer,
+                            { transform: [{ scale }] },
+                          ]}
+                        >
+                          <Animated.View
+                            style={[
+                              styles.labelWrapper,
+                              { opacity: activeOpacity },
+                            ]}
+                          >
+                            {renderLabel ? (
+                              renderLabel({
+                                route,
+                                focused: true,
+                                color: activeTintColor,
+                              })
+                            ) : (
+                              <AnimatedText
+                                style={[
+                                  styles.label,
+                                  { color: activeTintColor },
+                                ]}
+                              >
+                                {getLabelText({ route })}
+                              </AnimatedText>
+                            )}
+                          </Animated.View>
+                          {shifting ? null : (
+                            <Animated.View
+                              style={[
+                                styles.labelWrapper,
+                                { opacity: inactiveOpacity },
+                              ]}
+                            >
+                              {renderLabel ? (
+                                renderLabel({
+                                  route,
+                                  focused: false,
+                                  color: inactiveTintColor,
+                                })
+                              ) : (
+                                <AnimatedText
+                                  style={[
+                                    styles.label,
+                                    { color: inactiveTintColor },
+                                  ]}
+                                >
+                                  {getLabelText({ route })}
+                                </AnimatedText>
+                              )}
+                            </Animated.View>
+                          )}
+                        </Animated.View>
+                      ) : (
+                        <View style={styles.labelContainer} />
+                      )}
+                    </View>
+                  </Touchable>
+                );
+              })}
+            </SafeAreaView>
+          </Animated.View>
+          : null}
+
+
         </Surface>
       </View>
     );
@@ -978,5 +1234,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: -2,
+  },
+  header: {
+    width: '100%',
+    height: 10,
+  },
+  panelHeader: {
+    alignItems: 'center',
+  },
+  panelHandle: {
+    width: 40,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00000040',
+    marginBottom: 10,
   },
 });
