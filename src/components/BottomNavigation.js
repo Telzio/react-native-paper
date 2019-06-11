@@ -686,16 +686,6 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
           }
           onLayout={this._handleLayout}
         >
-          {this.props.secondaryRow ?
-          <Touchable onPress={() => { this.setState({ showSecondaryRow: !this.state.showSecondaryRow})}}>
-            <View style={styles.header}>
-                  <View style={styles.panelHeader}>
-                      <View style={styles.panelHandle} />
-                  </View>
-            </View>
-          </Touchable>
-
-          : null}
           <Animated.View style={[styles.barContent, { backgroundColor }]}>
             <SafeAreaView
               forceInset={{ top: 'never', bottom: 'always' }}
