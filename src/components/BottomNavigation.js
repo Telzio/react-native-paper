@@ -926,7 +926,7 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
           </Animated.View>
 
           {/* duplicated as a test */}
-          {this.props.secondaryRow && this.state.showSecondaryRow ?
+          {this.props.secondaryRow &&
           <Animated.View style={[styles.barContent, { backgroundColor }]}>
             <SafeAreaView
               forceInset={{ top: 'never', bottom: 'always' }}
@@ -967,7 +967,7 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
                     },
                   ]}
                 />
-              ) : null}
+              )}
 
 
               {routes.filter((route) => { return route.key === 'Settings' || route.key === 'Logout'}).map((route, index) => {
