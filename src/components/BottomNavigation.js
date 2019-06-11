@@ -967,7 +967,7 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
                     },
                   ]}
                 />
-              )}
+              ) : null}
 
 
               {routes.filter((route) => { return route.key === 'Settings' || route.key === 'Logout'}).map((route, index) => {
@@ -1157,8 +1157,7 @@ class BottomNavigation<T: *> extends React.Component<Props<T>, State> {
                 );
               })}
             </SafeAreaView>
-          </Animated.View>
-          : null}
+          </Animated.View>}
 
 
         </Surface>
